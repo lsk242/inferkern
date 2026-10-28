@@ -53,13 +53,15 @@ standing simulation harness underneath all of them.
 
 ## Comparison
 
-|  | A: Docker | B: QEMU/Alpine | C: Buildroot | D: harness |
-| --- | --- | --- | --- | --- |
-| Real kernel boot | No | Yes | Yes | N/A |
-| Real storage mgmt | No | Yes (virtual) | Yes | Simulated |
-| Local LLM | No | Optional | Yes (goal) | Either |
-| Effort | Days | Weeks | Weeks | Ongoing |
-| Risk | Low | Medium | Medium-high | Low |
+|  | A: Docker | B: QEMU/Alpine | C: Buildroot |
+| --- | --- | --- | --- |
+| Real kernel boot | No | Yes | Yes |
+| Real storage mgmt | No | Yes (virtual) | Yes |
+| Local LLM | No | Optional | Yes (goal) |
+| Effort | Days | Weeks | Weeks |
+| Risk | Low | Medium | Medium-high |
+
+(D is excluded: it's the test harness running underneath A–C, not a boot target.)
 
 ## Recommendation
 
