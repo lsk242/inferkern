@@ -1,0 +1,14 @@
+services:
+  inferkern:
+    build: .
+    image: inferkern:dev
+    ports:
+      - "8080:80"
+    environment:
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_ENDPOINT: ${LLM_ENDPOINT:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      INFERKERN_GOAL: /etc/inferkern/goal.md
+      INFERKERN_STATE_DIR: /var/lib/inferkern
+    # Keep container alive after converge so you can curl it
+    # Set INFERKERN_ONESHOT=1 to exit after converge (for harness)
