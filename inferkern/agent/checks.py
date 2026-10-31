@@ -6,7 +6,6 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-
 @dataclass
 class CheckResult:
     name: str
@@ -14,7 +13,6 @@ class CheckResult:
     output: str
     elapsed_s: float
     path: Path | None = None
-
 
 def run_checks(
     goal,
@@ -36,7 +34,6 @@ def run_checks(
         # ensure executable
         try:
             import time as _time
-
             t0 = _time.time()
             proc = subprocess.run(
                 ["/bin/sh", str(p)],
@@ -65,10 +62,8 @@ def run_checks(
             results.append(CheckResult(name=p.name, passed=False, output=str(e), elapsed_s=0, path=p))
     return results
 
-
 def all_passed(results: list[CheckResult]) -> bool:
     return bool(results) and all(r.passed for r in results)
-
 
 def summary(results: list[CheckResult]) -> str:
     lines = []
@@ -76,7 +71,6 @@ def summary(results: list[CheckResult]) -> str:
         status = "PASS" if r.passed else "FAIL"
         lines.append(f"[{status}] {r.name}: {r.output[:300] if r.output else '(no output)'}")
     return "\n".join(lines)
-
 
 def main() -> None:
     import argparse
@@ -98,7 +92,6 @@ def main() -> None:
     else:
         print("\nSome checks FAILED.")
         raise SystemExit(1)
-
 
 if __name__ == "__main__":
     main()

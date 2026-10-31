@@ -16,12 +16,26 @@ def run_once(goal: str, run_id: int, use_docker: bool, workdir: Path) -> dict:
     result: dict = {"run": run_id, "goal": goal, "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
 
     if use_docker:
-        # Docker path
+        # Docker path — use sudo if needed (lsk may be in docker group but not yet effective)
         env = os.environ.copy()
         image = os.environ.get("INFERKERN_IMAGE", "inferkern:dev")
-        # inferkern docker args
-        cmd = [
-            "docker",
+        # Detect docker command (may need sudo)
+        import shutil
+        docker_bin = "docker"
+        # test if docker works without sudo; if not, try sudo
+        try:
+            _test = subprocess.run(["docker", "ps"], capture_output=True, text=True, timeout=5)
+            if "permission denied" in (_test.stderr or "").lower() or _test.returncode != 0 and "permission" in (_test.stderr or "").lower():
+                # try sudo
+                _test2 = subprocess.run(["sudo", "docker", "ps"], capture_output=True, text=True, timeout=5)
+                if _test2.returncode == 0:
+                    docker_bin = "sudo docker"
+        except Exception:
+            pass
+        # Split for subprocess (handle "sudo docker" -> ["sudo","docker"])
+        docker_cmd = docker_bin.split()
+        # inferkern docker args — KEEP_ALIVE=0 so container exits after converge (harness needs exit code)
+        cmd = docker_cmd + [
             "run",
             "--rm",
             "-e",
@@ -32,6 +46,8 @@ def run_once(goal: str, run_id: int, use_docker: bool, workdir: Path) -> dict:
             f"INFERKERN_LLM_MODEL={env.get('INFERKERN_LLM_MODEL','')}",
             "-e",
             f"INFERKERN_GOAL=/goals/{goal}/goal.yaml",
+            "-e",
+            "INFERKERN_KEEP_ALIVE=0",
             "-v",
             f"{workdir}/goals:/goals:ro",
             image,

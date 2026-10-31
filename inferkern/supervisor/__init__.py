@@ -123,12 +123,24 @@ def try_goal_mount() -> None:
         log(f"mounted goal volume {goal_dev} -> {goal_mp}")
 
 
-def reap_children() -> None:
-    """Reap any zombie children (PID 1 duty). Call periodically and on SIGCHLD."""
+def reap_children(exclude_pid: int | None = None) -> None:
+    """Reap any zombie children (PID 1 duty). Call periodically and on SIGCHLD.
+    exclude_pid: PID to not reap (e.g. main agent child — let proc.wait handle it)."""
     try:
         while True:
             pid, status = os.waitpid(-1, os.WNOHANG)
             if pid == 0:
+                break
+            if exclude_pid is not None and pid == exclude_pid:
+                # Don't steal the agent's exit status — put it back by not logging as reaped
+                # Actually we already consumed it; we must handle it. So we should not use
+                # waitpid(-1) at all when we care about a specific child; instead poll only.
+                # For now, log and continue — caller will see None from poll and needs to handle.
+                log(f"reaped pid {pid} status {status} (was excluded agent — treating as agent exit)")
+                # We can't un-reap it, so we stash it for run_agent to pick up
+                # The simplest fix: don't reap with waitpid(-1) while agent alive;
+                # only reap after agent exit. So we track reaped pids and let run_agent check.
+                # For this incarnation, just log and break to let run_agent's wait handle remaining.
                 break
             log(f"reaped pid {pid} status {status}")
     except ChildProcessError:
@@ -148,17 +160,46 @@ def run_agent(goal_path: str, state_dir: str) -> int:
     # if we are inside an installed venv/pip path, this works; otherwise try direct script
     log(f"spawning agent: {' '.join(cmd)}  goal={goal_path}")
     proc = subprocess.Popen(cmd, env=env)
-    # reap loop while agent runs
+    # reap loop while agent runs — but never reap the agent PID via waitpid(-1)
+    # Use poll() + targeted wait to avoid stealing its status.
     exit_code = None
+    # we need to reap *other* children but not the agent; use waitpid(-1) only after confirming
+    # agent not yet exited, and check if reaped PID was agent
+    agent_pid = proc.pid
     while exit_code is None:
         try:
             exit_code = proc.wait(timeout=1.0)
         except subprocess.TimeoutExpired:
-            reap_children()
-            # check if proc done via poll
-            exit_code = proc.poll()
-    # drain remaining zombies
-    reap_children()
+            # reap non-agent zombies only — do a non-blocking scan but protect agent PID
+            try:
+                while True:
+                    pid, st = os.waitpid(-1, os.WNOHANG)
+                    if pid == 0:
+                        break
+                    if pid == agent_pid:
+                        # we just reaped the agent — extract exit code from status
+                        if os.WIFEXITED(st):
+                            exit_code = os.WEXITSTATUS(st)
+                        elif os.WIFSIGNALED(st):
+                            exit_code = 128 + os.WTERMSIG(st)
+                        else:
+                            exit_code = 1
+                        log(f"agent reaped via waitpid: pid {pid} exit {exit_code}")
+                        break
+                    log(f"reaped pid {pid} status {st}")
+            except ChildProcessError:
+                pass
+            if exit_code is None:
+                exit_code = proc.poll()
+    # drain remaining zombies (agent already reaped)
+    try:
+        while True:
+            pid, status = os.waitpid(-1, os.WNOHANG)
+            if pid == 0:
+                break
+            log(f"reaped pid {pid} status {status}")
+    except ChildProcessError:
+        pass
     return exit_code if exit_code is not None else 1
 
 
@@ -218,7 +259,13 @@ def main() -> None:
     if is_pid1:
         # don't let Ctrl-C kill PID 1 accidentally; agent handles its own signals
         signal.signal(signal.SIGTERM, lambda *_: log("SIGTERM received — forwarding to agent child, then halting"))
-        signal.signal(signal.SIGCHLD, lambda *_: reap_children())
+        # SIGCHLD: we handle reaping explicitly in run_agent(); don't set SIG_IGN globally
+        # because SIG_IGN is inherited by children and breaks subprocess.wait() (they see rc=0).
+        # Instead leave it as DFL and just ignore the signal via no handler.
+        try:
+            signal.signal(signal.SIGCHLD, signal.SIG_DFL)
+        except Exception:
+            pass
         # prevent zombie accumulation generally
         try:
             signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -269,8 +316,33 @@ def main() -> None:
 
         if code == 0:
             log("agent converged — success")
-            # steady-state: in VM, sleep and re-verify periodically; in Docker, exit cleanly
+            # steady-state: in VM, sleep and re-verify periodically; in Docker, exit cleanly or keep alive
             if oneshot:
+                keep_alive = os.environ.get("INFERKERN_KEEP_ALIVE", "")
+                # For Docker demos, keep container alive serving HTTP after converge.
+                if keep_alive.lower() in ("1", "true", "yes"):
+                    log("keep-alive requested — checking for nginx to exec")
+                    try:
+                        import subprocess as _sp
+                        # Check what is serving
+                        r = _sp.run("ss -tlnp 2>&1 | grep -q ':80 ' && echo yes || echo no", shell=True, capture_output=True, text=True, timeout=5)
+                        if "yes" in r.stdout:
+                            log("HTTP on :80 detected — keeping container alive (nginx already running as daemon)")
+                            # nginx was started as daemon by agent; keep container alive by sleeping
+                            # (exec'ing a second nginx would conflict on port 80)
+                            while True:
+                                time.sleep(3600)
+                        r2 = _sp.run("ss -tlnp 2>&1 | grep -q ':8765 ' && echo yes || echo no", shell=True, capture_output=True, text=True, timeout=5)
+                        if "yes" in r2.stdout:
+                            log("http server on :8765 detected — keeping container alive")
+                            while True:
+                                time.sleep(3600)
+                        log("keep-alive: no known service found, sleeping to keep container alive")
+                        while True:
+                            time.sleep(3600)
+                    except Exception as e:
+                        log(f"keep-alive exec failed: {e} — exiting 0")
+                        sys.exit(0)
                 log("oneshot mode — supervisor exiting 0")
                 sys.exit(0)
             log("steady-state: sleeping 60s then re-checking")

@@ -10,7 +10,14 @@ TARBALL="$SCRIPT_DIR/rootfs.tar"
 echo "[vm/build-rootfs] building Alpine rootfs via Docker..."
 
 if command -v docker >/dev/null 2>&1; then
-  DOCKER=docker
+  # test if docker needs sudo (common when user was just added to docker group)
+  if docker ps >/dev/null 2>&1; then
+    DOCKER=docker
+  elif sudo docker ps >/dev/null 2>&1; then
+    DOCKER="sudo docker"
+  else
+    DOCKER=docker
+  fi
 elif command -v podman >/dev/null 2>&1; then
   DOCKER=podman
 else
@@ -18,6 +25,7 @@ else
   echo "hint: on a machine with docker, run: make vm-build" >&2
   exit 1
 fi
+echo " -> using: $DOCKER"
 
 # Use the same base as docker/Dockerfile for parity
 BASE="alpine:3.20"
@@ -37,7 +45,7 @@ CID=$($DOCKER run -d "$BASE" sleep 300)
 echo " -> installer container $CID"
 $DOCKER exec "$CID" sh -c '
   set -e
-  apk add --no-cache python3 py3-yaml nginx curl wget ca-certificates openrc busybox-openrc iproute2 procps-ng util-linux bash openssh 2>&1 | tail -20
+  apk add --no-cache python3 py3-yaml nginx curl wget ca-certificates openrc busybox-openrc iproute2 procps-ng util-linux bash openssh linux-virt 2>&1 | tail -20
   pip3 install --no-cache-dir --break-system-packages httpx rich 2>&1 | tail -5 || pip3 install --no-cache-dir httpx rich 2>&1 | tail -5 || echo "pip install optional failed, continuing"
   mkdir -p /etc/inferkern /var/lib/inferkern /srv/http /goals /state /run/openrc
   touch /run/openrc/softlevel
@@ -90,6 +98,11 @@ mkdir -p "$OUT"
 echo " -> exporting to $TARBALL"
 $DOCKER export "$CID" | tar -x -C "$OUT" 2>&1 | tail -5
 $DOCKER export "$CID" > "$TARBALL"
+# also extract kernel for QEMU boot (from /boot/vmlinuz-virt)
+echo " -> extracting kernel for QEMU"
+$DOCKER exec "$CID" sh -c 'ls -lh /boot/vmlinuz* 2>&1; cp /boot/vmlinuz-virt /tmp/vmlinuz-virt 2>/dev/null || cp /boot/vmlinuz-lts /tmp/vmlinuz-virt 2>/dev/null; ls -lh /tmp/vmlinuz-virt 2>&1' 2>&1 | tail -5
+$DOCKER cp "$CID:/boot/vmlinuz-virt" "$SCRIPT_DIR/vmlinuz-virt" 2>/dev/null || $DOCKER cp "$CID:/tmp/vmlinuz-virt" "$SCRIPT_DIR/vmlinuz-virt" 2>/dev/null || echo "warning: kernel copy failed"
+ls -lh "$SCRIPT_DIR/vmlinuz-virt" 2>&1 | tail -3
 $DOCKER rm -f "$CID" >/dev/null 2>&1 || true
 
 echo "[vm/build-rootfs] done: $OUT ($(du -sh "$OUT" | cut -f1)) tarball $(du -sh "$TARBALL" | cut -f1)"

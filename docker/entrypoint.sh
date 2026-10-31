@@ -21,11 +21,16 @@ else
   mkdir -p /app/goals 2>/dev/null || true
 fi
 
-echo "[entrypoint] goal=$GOAL state=$STATE_DIR"
+echo "[entrypoint] goal=$GOAL state=$STATE_DIR keep_alive=${INFERKERN_KEEP_ALIVE:-1}"
 echo "[entrypoint] llm_endpoint=${INFERKERN_LLM_ENDPOINT:-<none> (heuristic mode)}"
 
 # fix permissions for state
 mkdir -p "$STATE_DIR" 2>/dev/null || true
+
+# Default: keep container alive after converge for demo (override with INFERKERN_KEEP_ALIVE=0 to exit)
+if [ -z "${INFERKERN_KEEP_ALIVE:-}" ]; then
+  export INFERKERN_KEEP_ALIVE=1
+fi
 
 # delegate to supervisor (oneshot by default in container)
 exec python3 -m inferkern.supervisor.sup "$GOAL" --state-dir "$STATE_DIR" "$@"

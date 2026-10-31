@@ -119,12 +119,14 @@ def heuristic_plan(goal, state: State) -> list[tuple[str, dict]]:
 
     steps: list[tuple[str, dict]] = []
 
-    # Heuristic: detect package manager and install nginx
-    has_nginx = _sp.run("which nginx 2>/dev/null; nginx -v 2>&1", shell=True, capture_output=True, text=True).returncode == 0
-    if not has_nginx and is_web:
+    # Heuristic: for web goals, ensure nginx (install if missing), configure, start, verify
+    # Don't skip just because binary exists — it may not be configured/running
+    if is_web:
         steps.append(("probe", {"kind": "all"}))
-        steps.append(("pkg_update", {}))
-        steps.append(("pkg_install", {"packages": "nginx curl", "update": False}))
+        has_nginx = _sp.run("which nginx 2>/dev/null; nginx -v 2>&1", shell=True, capture_output=True, text=True).returncode == 0
+        if not has_nginx:
+            steps.append(("pkg_update", {}))
+            steps.append(("pkg_install", {"packages": "nginx curl", "update": False}))
         steps.append(("write_file", {"path": "/srv/http/index.html", "content": "<!doctype html>\n<html><head><title>inferkern</title></head><body><h1>inferkern — it works</h1><p>Goal: " + goal.name + "</p></body></html>\n"}))
         # nginx config — write a minimal server block that serves /srv/http
         nginx_conf = """user nginx;
@@ -426,6 +428,12 @@ def main() -> None:
         raise SystemExit(1)
 
     signal.signal(signal.SIGTERM, _sigterm)
+    # Ensure subprocess.wait() works correctly even if parent (PID1 supervisor) set SIGCHLD to SIG_IGN
+    # SIG_IGN is inherited and breaks waitpid — must reset to DFL in the agent.
+    try:
+        signal.signal(signal.SIGCHLD, signal.SIG_DFL)
+    except Exception:
+        pass
 
     sys.exit(run_loop(args.goal, state_dir=args.state_dir or None, dry_run=args.dry_run, max_steps_override=args.max_steps))
 
