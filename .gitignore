@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
+dist/
+qemu/rootfs/
+qemu/*.qcow2
+qemu/*.img
+/var/
+harness-results.json

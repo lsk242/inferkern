@@ -1,0 +1,27 @@
+name: container-host
+description: |
+  Converge this system into a container host: Docker running,
+  with a declared nginx container serving /srv/www on port 80.
+
+llm:
+  provider: mock
+  # Mock plan for container-host — install docker + run container
+  mock_plan:
+    - { tool: "exec", args: { command: "cat /etc/os-release" } }
+    - { tool: "exec", args: { command: "apk add docker" } }
+    - { tool: "exec", args: { command: "dockerd --version || docker --version" } }
+    - { tool: "exec", args: { command: "mkdir -p /srv/www && echo '<h1>inferkern container-host</h1>' > /srv/www/index.html" } }
+    - { tool: "exec", args: { command: "docker run -d --name inferkern-web -p 80:80 -v /srv/www:/usr/share/nginx/html:ro nginx:alpine 2>&1 || echo 'docker run attempted'" } }
+    - { tool: "exec", args: { command: "sleep 2 && curl -sf http://127.0.0.1/ || wget -qO- http://127.0.0.1/ || echo 'check-fallback'" } }
+
+budget:
+  max_steps: 20
+  max_tokens: 50000
+  timeout_min: 10
+
+constraints:
+  allow: [exec, read_file, write_file, list_dir, check, probe]
+  deny: []
+
+accept:
+  - ../../checks/http-200.sh

@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest -v
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/Dockerfile -t inferkern:ci .
+      # Verify goal parsing
+      - run: docker run --rm inferkern:ci --dry-run --goal /app/examples/goals/web-server/goal.yaml
+      # Verify mock convergence produces passing checks
+      - run: docker run --rm inferkern:ci --goal /app/examples/goals/web-server/goal.yaml

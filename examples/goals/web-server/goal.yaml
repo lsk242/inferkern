@@ -1,0 +1,20 @@
+name: web-server
+description: |
+  Converge this Alpine system into a working nginx web server.
+  Serve a static site from /srv/www on port 80.
+  The page at http://127.0.0.1/ must return HTTP 200.
+
+llm:
+  provider: mock
+
+budget:
+  max_steps: 20
+  max_tokens: 50000
+  timeout_min: 10
+
+constraints:
+  allow: [exec, read_file, write_file, list_dir, check, probe]
+  deny: []
+
+accept:
+  - ../../checks/http-200.sh
