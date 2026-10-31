@@ -1,0 +1,21 @@
+name: backup-server
+description: |
+  Converge to a backup server — Restic + Borg with cron, local + S3 target, verify schedule. Checks backup tools and cron job.
+
+budget:
+  max_steps: 40
+  max_tokens: 180000
+  timeout_min: 10
+
+llm:
+  endpoint: ""
+  api_key: ""
+  model: ""
+
+accept:
+  - "checks/restic-repo.sh"
+  - "checks/borg-repo.sh"
+
+constraints:
+  allow: ["probe","exec","read_file","write_file","list_dir","pkg_install","pkg_update","service_start","service_status","service_stop","run_checks","journal"]
+  deny: []
