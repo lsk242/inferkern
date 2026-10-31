@@ -1,0 +1,2 @@
+# No external deps — stdlib only for determinism.
+# Agent deps live in agent/requirements.txt.

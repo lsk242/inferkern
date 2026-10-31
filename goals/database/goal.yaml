@@ -1,0 +1,21 @@
+name: database
+description: |
+  Converge to a database server — PostgreSQL 16 with Redis cache, ready for apps. Installs postgres, creates app DB/user, verifies pg_isready and redis ping.
+
+budget:
+  max_steps: 45
+  max_tokens: 200000
+  timeout_min: 12
+
+llm:
+  endpoint: ""
+  api_key: ""
+  model: ""
+
+accept:
+  - "checks/postgres-ready.sh"
+  - "checks/redis-ping.sh"
+
+constraints:
+  allow: ["probe","exec","read_file","write_file","list_dir","pkg_install","pkg_update","service_start","service_status","service_stop","run_checks","journal"]
+  deny: []
