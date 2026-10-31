@@ -19,9 +19,35 @@ assistant node, or anything else you ask it to become.
    installs packages, configures network, and launches services and containers.
 5. The result is a working system — converged, not installed.
 
-## Status: research phase
+## Quick start
 
-This repo currently holds research and design docs. No bootable image yet.
+```bash
+pip install -e ".[dev]"          # or: uv pip install -e ".[dev]"
+pytest                           # 28 tests
+
+# Proposal A — Docker (no API key needed, uses mock provider)
+docker build -f docker/Dockerfile -t inferkern:dev .
+docker run --rm -p 8080:80 inferkern:dev
+curl http://localhost:8080/      # should return 200 with inferkern page
+
+# With a real LLM (set LLM_ENDPOINT + LLM_API_KEY)
+docker run --rm -p 8080:80 \
+  -v $(pwd)/examples/goals/web-server/goal.llm.yaml:/etc/inferkern/goal.yaml:ro \
+  -e LLM_ENDPOINT -e LLM_API_KEY inferkern:dev
+
+# Proposal B — QEMU (requires qemu-system-x86_64)
+make qemu-rootfs                 # build Alpine rootfs (needs docker)
+qemu/run.sh --disk /tmp/disk.qcow2
+
+# Harness
+make harness                     # 3× Docker convergence runs
+```
+
+## Status: proposals A & B implemented
+
+- **Proposal A (Docker):** agent loop converges Alpine → nginx web server in a container
+- **Proposal B (QEMU):** `inferkern-sup` supervisor boots Alpine in QEMU as PID 1, supervises agent
+- **Next:** Buildroot appliance image (Proposal C), offline/local LLM, bare-metal boot
 
 | Doc | What it covers |
 | --- | --- |
