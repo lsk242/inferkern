@@ -1,0 +1,21 @@
+name: reverse-proxy
+description: |
+  Converge to a reverse proxy — Caddy/Traefik with automatic TLS, routing *:80 -> backends. Verifies proxy config and HTTP proxy headers.
+
+budget:
+  max_steps: 40
+  max_tokens: 180000
+  timeout_min: 10
+
+llm:
+  endpoint: ""
+  api_key: ""
+  model: ""
+
+accept:
+  - "checks/caddy-running.sh"
+  - "checks/proxy-config.sh"
+
+constraints:
+  allow: ["probe","exec","read_file","write_file","list_dir","pkg_install","pkg_update","service_start","service_status","service_stop","run_checks","journal"]
+  deny: []
