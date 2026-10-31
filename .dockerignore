@@ -1,0 +1,9 @@
+.git
+.gitignore
+vm/rootfs
+vm/*.qcow2
+vm/*.img
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
