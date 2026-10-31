@@ -1,0 +1,21 @@
+name: media-server
+description: |
+  Converge to a media server — Jellyfin with hardware transcode, serving on :8096. Installs Jellyfin, configures library at /srv/media, verifies HTTP 200.
+
+budget:
+  max_steps: 50
+  max_tokens: 220000
+  timeout_min: 15
+
+llm:
+  endpoint: ""
+  api_key: ""
+  model: ""
+
+accept:
+  - "checks/jellyfin-http.sh"
+  - "checks/media-dir.sh"
+
+constraints:
+  allow: ["probe","exec","read_file","write_file","list_dir","pkg_install","pkg_update","service_start","service_status","service_stop","run_checks","journal"]
+  deny: []

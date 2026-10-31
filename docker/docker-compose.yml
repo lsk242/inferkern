@@ -1,0 +1,17 @@
+services:
+  inferkern:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: inferkern:dev
+    ports:
+      - "8080:80"
+    environment:
+      INFERKERN_LLM_ENDPOINT: ${INFERKERN_LLM_ENDPOINT:-}
+      INFERKERN_LLM_API_KEY: ${INFERKERN_LLM_API_KEY:-}
+      INFERKERN_LLM_MODEL: ${INFERKERN_LLM_MODEL:-}
+      INFERKERN_GOAL: /goals/web-server/goal.yaml
+    volumes:
+      - ../goals:/goals:ro
+    # for demo-static goal mount example:
+    # INFERKERN_GOAL: /goals/demo-static/goal.yaml

@@ -1,0 +1,23 @@
+name: smoke-test
+description: |
+  Smoke test — proves the agent loop converges for real without needing
+  nginx or Docker. Starts a Python http.server on :8765 serving /tmp/inferkern-smoke.
+  Used to validate the loop/tools/policy/journal on any host.
+
+budget:
+  max_steps: 20
+  max_tokens: 100000
+  timeout_min: 5
+
+llm:
+  endpoint: ""
+  api_key: ""
+  model: ""
+
+accept:
+  - "checks/http-200.sh"
+  - "checks/file-exists.sh"
+
+constraints:
+  allow: ["probe","exec","read_file","write_file","list_dir","pkg_install","pkg_update","service_start","service_status","service_stop","run_checks","journal"]
+  deny: []
