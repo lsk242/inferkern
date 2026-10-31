@@ -1,0 +1,21 @@
+name: network-manager
+description: |
+  Converge to a network gateway — DHCP, DNS forwarding, and VLAN routing. Configures dnsmasq/NetworkManager, verifies DHCP lease range and DNS on :53.
+
+budget:
+  max_steps: 45
+  max_tokens: 200000
+  timeout_min: 12
+
+llm:
+  endpoint: ""
+  api_key: ""
+  model: ""
+
+accept:
+  - "checks/dns-listening.sh"
+  - "checks/dhcp-config.sh"
+
+constraints:
+  allow: ["probe","exec","read_file","write_file","list_dir","pkg_install","pkg_update","service_start","service_status","service_stop","run_checks","journal"]
+  deny: []
