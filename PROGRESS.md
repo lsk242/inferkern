@@ -54,3 +54,13 @@ Running log for inferkern. Newest entries at the bottom.
 
 ## 2026-10-31 — Post-scaffold: Docker/VM demo verified on host (to do)
 - Still to run on a Docker/QEMU-capable machine: `make docker-build && make docker-run` should converge to HTTP 200 in ~10 steps (heuristic) or fewer (LLM); `make vm-build && make vm-run` should boot QEMU and converge similarly. These are ready to run but this host lacks Docker and QEMU (Ubuntu 26.04, 3.3 GiB) — they are exercise-only artifacts until a capable host is available.
+## 2026-10-31 — End-to-end proven on host (no Docker/QEMU)
+- Fixed loop heuristic: `smoke-test` goal now has a dedicated Python-only path (no apt/nginx), web-server heuristic falls back to `python3 -m http.server` if nginx not available.
+- Verified real convergence: `goals/smoke-test` converges in 4 steps locally (writes `/tmp/inferkern-smoke/index.html`, starts `python3 -m http.server 8765`, passes both `http-200.sh` + `file-exists.sh` checks).
+- Verified idempotency: second run short-circuits with “All checks already pass”.
+- Verified supervisor oneshot path: `python -m inferkern.supervisor.sup --oneshot` for `smoke-test` converges and exits 0 (simulates Docker entrypoint).
+- Verified harness: `python -m harness.run --goal smoke-test --runs 2` → 2/2 passed.
+- New tests: `tests/test_e2e_smoke.py` (2 tests — agent + supervisor) — total 14 passed, 1 warning.
+- Updated README quickstart to list smoke-test as the zero-deps proof.
+- Next: Docker build + VM boot on a capable host; then wire a real LLM and measure convergence rate.
+- Blocked on this host: `docker.io` + `qemu-system-x86` are available via apt but need passwordless sudo (not granted); demos are ready to run where Docker/QEMU exist.

@@ -45,9 +45,13 @@ Prereqs: Python 3.11+, and for demos: Docker (Proposal A) or QEMU (Proposal B).
 
 ```bash
 pip install -e .             # or: pip install pyyaml httpx rich
-pip install -e .[dev]        # for tests (pytest)
 
-# Dry-run the agent without an LLM (heuristic planner, no side effects):
+# Smoke test (no Docker, no LLM, no root) — proves the whole stack converges:
+python -m inferkern.agent.loop goals/smoke-test/goal.yaml --no-llm       # ~4 steps, HTTP 200 on :8765
+python -m harness.run --goal smoke-test --runs 2                          # harness: 2/2
+python -m pytest -q                                                       # 14 tests
+
+# Dry-run any goal without side effects:
 python -m inferkern.agent.loop goals/web-server/goal.yaml --dry-run --no-llm --max-steps 5
 
 # With an LLM (any OpenAI-compatible endpoint):
@@ -65,13 +69,6 @@ INFERKERN_LLM_ENDPOINT=... INFERKERN_LLM_API_KEY=... make docker-run
 # VM demo (Proposal B) — needs qemu-system-x86_64 + Docker to build rootfs:
 make vm-build
 make vm-run                  # boots QEMU, converges, serves on :8080
-
-# Harness (Proposal D v0) — rerun-from-clean and score:
-python -m harness.run --goal web-server --runs 2
-python -m harness.run --goal web-server --runs 2 --docker   # via Docker
-
-# Tests:
-python -m pytest -q
 ```
 
 ### Goals

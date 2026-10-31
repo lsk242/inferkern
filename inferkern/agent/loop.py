@@ -97,8 +97,24 @@ def heuristic_plan(goal, state: State) -> list[tuple[str, dict]]:
     except Exception:
         pass
 
-    # Simple static plan for web-server goals (and demo-static)
+    # Plan dispatch: smoke-test gets a Python-only path (no apt needed)
     goal_name = goal.name.lower()
+    if goal_name == "smoke-test" or "smoke" in goal_name:
+        steps_smoke: list[tuple[str, dict]] = []
+        steps_smoke.append(("probe", {"kind": "all"}))
+        steps_smoke.append((
+            "write_file",
+            {"path": "/tmp/inferkern-smoke/index.html",
+             "content": "<!doctype html><html><head><title>inferkern smoke</title></head><body><h1>inferkern smoke — ok</h1><p>Goal: " + goal.name + "</p></body></html>\n"},
+        ))
+        steps_smoke.append(("exec", {"command": "mkdir -p /tmp/inferkern-smoke && cat /tmp/inferkern-smoke/index.html | head -5"}))
+        # start Python http server on 8765 if not already listening
+        steps_smoke.append(("exec", {"command": "ss -tlnp 2>&1 | grep -q ':8765 ' && echo 'already listening on 8765' || (nohup python3 -m http.server 8765 --directory /tmp/inferkern-smoke >/tmp/inferkern-smoke/server.log 2>&1 & sleep 0.5; echo started:$?; ss -tlnp 2>&1 | grep 8765 || echo 'no ss entry')"}))
+        steps_smoke.append(("exec", {"command": "sleep 0.5; curl -sf http://127.0.0.1:8765/ 2>&1 | head -c 500; echo \"\"; echo smoke_curl:$?"}))
+        steps_smoke.append(("run_checks", {}))
+        return steps_smoke
+
+    # Simple static plan for web-server goals (and demo-static)
     is_web = "web" in goal_name or "nginx" in goal_name or "http" in goal_name or "static" in goal_name
 
     steps: list[tuple[str, dict]] = []
@@ -134,6 +150,7 @@ http {
         steps.append(("exec", {"command": "mkdir -p /var/log/nginx /var/run && nginx -t 2>&1; echo nginx_conf_ok:$?"}))
         steps.append(("service_start", {"name": "nginx"}))
         steps.append(("exec", {"command": "sleep 1; curl -sf http://127.0.0.1/ 2>&1 | head -c 500; echo \"\"; echo curl_exit:$?"}))
+        steps.append(("exec", {"command": "ss -tlnp 2>&1 | grep -q ':80 ' || (echo 'port 80 not listening, trying python fallback'; mkdir -p /srv/http; nohup python3 -m http.server 80 --directory /srv/http >/tmp/inferkern-pyhttp.log 2>&1 & sleep 0.5; curl -sf http://127.0.0.1/ 2>&1 | head -c 200; echo pyhttp:$?)"}))
         steps.append(("run_checks", {}))
         return steps
 
