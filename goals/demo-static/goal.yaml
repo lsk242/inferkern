@@ -1,0 +1,22 @@
+name: demo-static
+description: |
+  Minimal static site demo — verifies the agent can converge without needing
+  nginx quirks in minimal test envs. Installs a tiny HTTP server and serves
+  a page. Falls back gracefully if nginx not available.
+
+budget:
+  max_steps: 30
+  max_tokens: 100000
+  timeout_min: 10
+
+llm:
+  endpoint: ""
+  api_key: ""
+  model: ""
+
+accept:
+  - "checks/http-200.sh"
+
+constraints:
+  allow: ["probe","exec","read_file","write_file","list_dir","pkg_install","pkg_update","service_start","service_status","service_stop","run_checks","journal"]
+  deny: []

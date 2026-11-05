@@ -27,3 +27,17 @@ Running log for inferkern. Newest entries at the bottom.
   OpenClaw-style assistant node; draft goal/check file format.
 - Next: pick agent-loop language + first LLM API, then start Phase 1
   (Proposal A in Docker).
+
+## 2026-11-04 — Full review + consolidated Docker/VM implementation
+
+- Reviewed all 16 open PRs (#1, #2, #3, #4, #17–#28):
+  `docs/review-all-open-prs.md`. Decision: #1 as base, salvage
+  Config/logging/tini/tests from #2 and CI from #4, close the rest as
+  superseded (recipe goals verified byte-identical to consolidated).
+- Applied #1 review fixes: supervisor `__init__` duplication, dead
+  reaper, exact policy matching (+decoy test), APKINDEX kernel
+  resolution, `pgrep -x` service check, SIGTERM-aware keep-alive.
+- Verified: pytest 18 passed (in-image); local + Docker smoke converge;
+  Docker web-server (nginx) exit 0; detached :8080 HTTP 200; graceful
+  stop 0.5s; harness 2/2; VM rootfs 132M + vmlinuz-virt 11M built.
+  QEMU boot pending a host with qemu-system-x86_64.

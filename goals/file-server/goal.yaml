@@ -1,0 +1,21 @@
+name: file-server
+description: |
+  Converge to a file server — Samba shares + NFS exports on /srv/share, with user quotas. Verifies smbd/nfsd and export config.
+
+budget:
+  max_steps: 40
+  max_tokens: 180000
+  timeout_min: 10
+
+llm:
+  endpoint: ""
+  api_key: ""
+  model: ""
+
+accept:
+  - "checks/samba-running.sh"
+  - "checks/nfs-exports.sh"
+
+constraints:
+  allow: ["probe","exec","read_file","write_file","list_dir","pkg_install","pkg_update","service_start","service_status","service_stop","run_checks","journal"]
+  deny: []

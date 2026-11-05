@@ -1,0 +1,36 @@
+name: web-server
+description: |
+  Converge to an nginx web server serving static content on port 80.
+  Install nginx, provide a working config and an index.html, start the
+  service, and pass the acceptance checks.
+
+budget:
+  max_steps: 40
+  max_tokens: 180000
+  timeout_min: 12
+
+# LLM — env vars win over these; leave empty to use heuristic planner
+llm:
+  endpoint: ""   # e.g. https://api.openai.com/v1 — or set INFERKERN_LLM_ENDPOINT
+  api_key: ""    # or INFERKERN_LLM_API_KEY
+  model: ""      # or INFERKERN_LLM_MODEL
+
+accept:
+  - "checks/http-200.sh"
+  - "checks/nginx-running.sh"
+
+constraints:
+  allow:
+    - "probe"
+    - "exec"
+    - "read_file"
+    - "write_file"
+    - "list_dir"
+    - "pkg_install"
+    - "pkg_update"
+    - "service_start"
+    - "service_status"
+    - "service_stop"
+    - "run_checks"
+    - "journal"
+  deny: []
