@@ -19,9 +19,32 @@ assistant node, or anything else you ask it to become.
    installs packages, configures network, and launches services and containers.
 5. The result is a working system — converged, not installed.
 
-## Status: research phase
+## Status: Phase 1+2 implemented (Docker + VM)
 
-This repo currently holds research and design docs. No bootable image yet.
+The agent loop, supervisor, Docker image (Proposal A), QEMU rootfs +
+launcher (Proposal B), and rerun harness (Proposal D) are implemented and
+verified. See [Progress](PROGRESS.md) for the log and
+[all-open-PRs review](docs/review-all-open-prs.md) for how the parallel
+PR stacks were consolidated.
+
+## Quick start
+
+```bash
+pip install -e .   # or: pip install pyyaml httpx rich pytest
+python -m inferkern.agent.loop goals/smoke-test/goal.yaml --no-llm  # local, :8765
+make docker-build && make docker-run            # nginx web-server, exits 0
+make docker-serve                               # detached, http://localhost:8080
+make vm-build && make vm-run GOAL=web-server    # QEMU (needs qemu-system-x86_64)
+python -m harness.run --goal web-server --runs 2 --docker
+pytest -q                                       # 18 tests
+```
+
+Without an LLM endpoint the deterministic heuristic planner converges
+`smoke-test` and `web-server`; set `INFERKERN_LLM_ENDPOINT` /
+`INFERKERN_LLM_API_KEY` / `INFERKERN_LLM_MODEL` (any OpenAI-compatible
+API, incl. local `llama-server`) for LLM-driven goals. The other 12+
+goals under `goals/` ship acceptance checks and are experimental until
+each has a recorded harness run.
 
 | Doc | What it covers |
 | --- | --- |

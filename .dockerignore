@@ -1,0 +1,9 @@
+.git
+.venv
+__pycache__
+.pytest_cache
+state/
+vm/rootfs/
+vm/*.qcow2
+*.md
+!README.md

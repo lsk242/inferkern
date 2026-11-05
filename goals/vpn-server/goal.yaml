@@ -1,0 +1,21 @@
+name: vpn-server
+description: |
+  Converge to a WireGuard VPN server — peers on 10.8.0.0/24, forwarding enabled, serving on UDP :51820. Generates keys, configures wg0, enables IP forward.
+
+budget:
+  max_steps: 45
+  max_tokens: 200000
+  timeout_min: 12
+
+llm:
+  endpoint: ""
+  api_key: ""
+  model: ""
+
+accept:
+  - "checks/wireguard-interface.sh"
+  - "checks/ip-forward.sh"
+
+constraints:
+  allow: ["probe","exec","read_file","write_file","list_dir","pkg_install","pkg_update","service_start","service_status","service_stop","run_checks","journal"]
+  deny: []

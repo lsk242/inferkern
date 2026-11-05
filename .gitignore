@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+state/
+state-*/
+.pytest_cache/
+vm/rootfs/
+vm/rootfs.tar
+vm/*.qcow2
+vm/*.raw
+vm/vmlinuz-virt
+vm/initramfs-virt
+vm/qemu.log
+*.log

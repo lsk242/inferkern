@@ -1,0 +1,23 @@
+name: container-host
+description: |
+  Converge to a container host: Docker (or podman) installed and running,
+  with a sample nginx container serving on port 80. Exercises multi-service
+  orchestration and volume management.
+
+budget:
+  max_steps: 50
+  max_tokens: 220000
+  timeout_min: 15
+
+llm:
+  endpoint: ""
+  api_key: ""
+  model: ""
+
+accept:
+  - "checks/docker-running.sh"
+  - "checks/http-200.sh"
+
+constraints:
+  allow: ["probe","exec","read_file","write_file","list_dir","pkg_install","pkg_update","service_start","service_status","service_stop","run_checks","journal"]
+  deny: []
